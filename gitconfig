@@ -1,0 +1,18 @@
+[filter "lfs"]
+	required = true
+	clean = git-lfs clean %f
+	smudge = git-lfs smudge %f
+[user]
+	name = Akshay Pulipaka
+	email = akshay.pulipaka@fullscreen.net
+[github]
+	user = drAkshay
+[credential]
+	helper = osxkeychain
+[color]
+	ui = true
+
+[color "status"]
+  added = yellow
+  changed = green
+  untracked = cyan
