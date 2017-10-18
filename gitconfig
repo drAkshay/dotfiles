@@ -3,8 +3,8 @@
 	clean = git-lfs clean %f
 	smudge = git-lfs smudge %f
 [user]
-	name = Akshay Pulipaka
-	email = akshay.pulipaka@fullscreen.net
+	name = Akshay Axe
+	email = dr.axe.puli@gmail.com
 [github]
 	user = drAkshay
 [credential]

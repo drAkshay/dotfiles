@@ -12,7 +12,8 @@
 #  6.   Networking
 #  7.   System Operations & Information
 #  8.   Web Development
-#  9.   Reminders & Notes
+#  9.   Custom Functions
+#  10.   Reminders & Notes
 #
 #  ---------------------------------------------------------------------------
 
@@ -23,20 +24,38 @@
 #   Change Prompt
 #   ------------------------------------------------------------
     export PS1="________________________________________________________________________________\n| \w @ \h (\u) \n| => "
-    export PS2="| => "
+    export PS2="\[\033[36m\]\u\[\033[m\]@\[\033[32m\]\h:\[\033[33;1m\]\w\[\033[m\]\$ "
+    export PS3="| => "
 
 #   History management
 #   ------------------------------------------------------------
-    export HISTCONTROL=ignoredups
-    export HISTSIZE=1000
-    export HISTFILESIZE=1000000
+
+#   Eternal bash history.
+#   -----------------------------------------------------
+# Undocumented feature which sets the size to "unlimited".
+# https://stackoverflow.com/questions/9457233/unlimited-bash-history
+    export SHELL_SESSION_HISTORY=0
+    export HISTCONTROL=ignoreboth:erasedups
+    export HISTFILESIZE=
+    export HISTSIZE=
     export HISTTIMEFORMAT="%Y%m%d-%T "
-    shopt -s cmdhist
+    export HISTIGNORE='&:ls:cd ~:cd ..:[bf]g:exit:h:history'
+    #export HISTTIMEFORMAT="[%F %T] "
     shopt -s histappend
-    export PROMPT_COMMAND="history -a; history -c; history -r; $PROMPT_COMMAND"
-    function hs {
-    grep $1 $HISTFILE
-    }
+    shopt -s cmdhist
+# check the window size after each command and, if necessary,
+    shopt -s checkwinsize                # update the values of LINES and COLUMNS.
+# Case-insensitive globbing (used in pathname expansion)
+    shopt -s nocaseglob;
+# Autocorrect typos in path names when using `cd`
+    shopt -s cdspell;
+# Change the file location because certain bash sessions truncate .bash_history file upon close.
+# http://superuser.com/questions/575479/bash-history-truncated-to-500-lines-on-each-login
+    export HISTFILE=~/.bash_eternal_history
+# Force prompt to write history after every command.
+# http://superuser.com/questions/20900/bash-history-loss
+#    PROMPT_COMMAND="history -a; $PROMPT_COMMAND"
+    export PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND$'\n'}history -a; history -c; history -r"
 
 #   iTerm2 custom title on each tab
 #   ------------------------------------------------------------
@@ -72,8 +91,9 @@ alias cp='cp -iv'                           # Preferred 'cp' implementation
 alias mv='mv -iv'                           # Preferred 'mv' implementation
 alias mkdir='mkdir -pv'                     # Preferred 'mkdir' implementation
 alias ll='ls -FGlAhp'                       # Preferred 'ls' implementation
+alias ls='ls -FGlhtA'
 alias less='less -FSRXc'                    # Preferred 'less' implementation
-cd() { builtin cd "$@"; ll; }               # Always list directory contents upon 'cd'
+cd() { builtin cd "$@"; ls; }               # Always list directory contents upon 'cd'
 alias cd..='cd ../'                         # Go back 1 directory level (for fast typers)
 alias ..='cd ../'                           # Go back 1 directory level
 alias ...='cd ../../'                       # Go back 2 directory levels
@@ -94,6 +114,21 @@ mcd () { mkdir -p "$1" && cd "$1"; }        # mcd:          Makes new Dir and ju
 trash () { command mv "$@" ~/.Trash ; }     # trash:        Moves a file to the MacOS trash
 ql () { qlmanage -p "$*" >& /dev/null; }    # ql:           Opens any file in MacOS Quicklook Preview
 alias DT='tee ~/Desktop/terminalOut.txt'    # DT:           Pipe content to file on MacOS Desktop
+
+alias grep='grep --color=auto'              # grep:         Colorize the grep command output for ease of use
+alias egrep='egrep --color=auto'            # egrep:        Colorize the egrep command output for ease of use
+alias fgrep='fgrep --color=auto'            # fgrep:        Colorize the fgrep command output for ease of use
+alias diff='colordiff'                      # diff:         install colordiff package
+
+alias reload='source ~/.bash_profile'       # reload:       re-source the bash_profile
+alias biggest='BLOCKSIZE=1048576; du -x | sort -nr | head -10'
+
+# filetree:    Show a textual file tree of subdirectories
+alias filetree="ls -R | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/ /' -e 's/-/|/'"
+
+# top-commands: show most popular commands
+alias top-commands='history | awk "{print $2}" | awk "{print $1}" |sort|uniq -c | sort -rn | head -10'
+#alias top-commands='history | awk "{print $2}" | awk "BEGIN {FS="|"} {print $1}" |sort|uniq -c | sort -rn | head -10'
 
 #   lr:  Full Recursive Directory Listing
 #   ------------------------------------------
@@ -229,6 +264,10 @@ alias ipInfo1='ipconfig getpacket en1'              # ipInfo1:      Get info on 
 alias openPorts='sudo lsof -i | grep LISTEN'        # openPorts:    All listening connections
 alias showBlocked='sudo ipfw list'                  # showBlocked:  All ipfw rules inc/ blocked IPs
 
+alias ping='ping -c 5'                              # ping:         Stop after sending count ECHO_REQUEST packets
+alias fastping='ping -c 100 -s.2'                   # fastping:     Do not wait interval 1 second, go fast
+alias ports='netstat -tulanp'                       # ports:        Show open ports
+
 #   ii:  display useful host related informaton
 #   -------------------------------------------------------------------
     ii() {
@@ -283,9 +322,69 @@ httpHeaders () { /usr/bin/curl -I -L $@ ; }             # httpHeaders:      Grab
 #   -------------------------------------------------------------------
     httpDebug () { /usr/bin/curl $@ -o /dev/null -w "dns: %{time_namelookup} connect: %{time_connect} pretransfer: %{time_pretransfer} starttransfer: %{time_starttransfer} total: %{time_total}\n" ; }
 
+#   ---------------------------------------
+#   9.  CUSTOM FUNCTIONS
+#   ---------------------------------------
+
+welcome() {
+    #------------------------------------------
+    #------WELCOME MESSAGE---------------------
+    # customize this first message with a message of your choice.
+    # this will display the username, date, time, a calendar, the amount of users, and the up time.
+    #clear
+    # Gotta love ASCII art with figlet
+    figlet "Welcome, " $USER;
+    #toilet "Welcome, " $USER;
+    echo -e ""; cal ;
+    echo -ne "Today is "; date #date +"Today is %A %D, and it is now %R"
+    echo -e ""
+    echo -ne "Up time:";uptime | awk /'up/'
+    #echo -en "Local IP Address :"; /sbin/ifconfig wlan0 | awk /'inet addr/ {print $2}' | sed -e s/addr:/' '/ 
+    echo "";
+}
+welcome;
+
+# get IP adresses
+#function my_ip() # get IP adresses
+my_ip () { 
+        MY_IP=$(/sbin/ifconfig wlan0 | awk "/inet/ { print $2 } " | sed -e s/addr://)
+                #/sbin/ifconfig | awk /'inet addr/ {print $2}' 
+        MY_ISP=$(/sbin/ifconfig wlan0 | awk "/P-t-P/ { print $3 } " | sed -e s/P-t-P://)
+}
+
+# get current host related info
+ii () {
+    echo -e "\nYou are logged on ${red}$HOST"
+    echo -e "\nAdditionnal information:$NC " ; uname -a
+    echo -e "\n${red}Users logged on:$NC " ; w -h
+    echo -e "\n${red}Current date :$NC " ; date
+    echo -e "\n${red}Machine stats :$NC " ; uptime
+    echo -e "\n${red}Memory stats :$NC " ; free
+    echo -en "\n${red}Local IP Address :$NC" ; /sbin/ifconfig wlan0 | awk /'inet addr/ {print $2}' | sed -e s/addr:/' '/ 
+    #my_ip 2>&. ;
+    #my_ip 2>&1 ;
+    #echo -e "\n${RED}Local IP Address :$NC" ; echo ${MY_IP:."Not connected"}
+    #echo -e "\n${RED}ISP Address :$NC" ; echo ${MY_ISP:."Not connected"}
+    #echo -e "\n${RED}Local IP Address :$NC" ; echo ${MY_IP} #:."Not connected"}
+    #echo -e "\n${RED}ISP Address :$NC" ; echo ${MY_ISP} #:."Not connected"}
+    echo
+}
+
+# Makes directory then moves into it
+#function mkcdr {
+mkcdr () {
+    mkdir $1
+    cd $1
+}
+
+# search history
+function hs {
+    grep $1 $HISTFILE
+    }
+
 
 #   ---------------------------------------
-#   9.  REMINDERS & NOTES
+#   10.  REMINDERS & NOTES
 #   ---------------------------------------
 
 #   remove_disk: spin down unneeded disk
