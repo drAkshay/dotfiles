@@ -9,7 +9,8 @@
 
 dir=~/dotfiles                    # dotfiles directory
 olddir=~/dotfiles_old             # old dotfiles backup directory
-files="bash_profile tmux.conf gitconfig"    # list of files/folders to symlink in homedir
+files="bash_profile tmux.conf gitconfig bashrc"    # list of files/folders to symlink in homedir
+emacs="emacs.d" # emacs dot file 
 #files="bashrc vimrc vim zshrc oh-my-zsh private scrotwm.conf Xresources"
 
 ##########
@@ -30,4 +31,12 @@ for file in $files; do
     mv ~/.$file ~/dotfiles_old/
     echo "Creating symlink to $file in home directory."
     ln -s $dir/$file ~/.$file
+done
+
+# see the different way i use the dir. structure for emacs. the emacs.d file i have is stored under ~/.emacs.d/init.el
+for efile in $emacs; do
+    echo "Moving any existing dotfiles from ~/.emacs.d to $olddir"
+    mv ~/.$efile/init.el ~/dotfiles_old/.$efile
+    echo "Creating symlink to $efile in home directory."
+    ln -s $dir/$efile ~/.$efile/init.el
 done
